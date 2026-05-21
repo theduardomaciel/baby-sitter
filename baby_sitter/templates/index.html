@@ -10,7 +10,7 @@
         window.BABY_SITTER_CONFIG = {
             videoUrl: {{ video_url | tojson }},
         motionEventsUrl: { { motion_events_url | tojson } },
-        motionSoundIntervalMs: { { motion_sound_interval_ms | tojson } }
+        motionSoundIntervalMs: { { motion_sound_interval_ms | tojson } },
         };
     </script>
     <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
@@ -24,6 +24,16 @@
         <div class="controls">
             <button id="sound-toggle" class="toggle active" type="button">Som: ligado</button>
         </div>
+        <section class="qr-card" aria-label="Acesso rápido à interface web">
+            <div class="qr-card__text">
+                <p class="qr-card__eyebrow">Acesso web</p>
+                <h1>Abra no celular</h1>
+                <p class="qr-card__description">Escaneie o QR Code para abrir esta página em outro dispositivo na mesma
+                    rede.</p>
+                <a class="qr-card__link" href="{{ public_url }}" target="_blank" rel="noreferrer">{{ public_url }}</a>
+            </div>
+            <img class="qr-card__image" src="{{ qr_code_data_url }}" alt="QR Code para abrir a página do Baby Sitter">
+        </section>
     </main>
 </body>
 

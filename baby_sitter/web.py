@@ -1,21 +1,41 @@
+import base64
 import json
 import time
+from io import BytesIO
+from pathlib import Path
 from threading import Condition, Thread
 
 import cv2
-from flask import Flask, Response, render_template, stream_with_context
+import qrcode
+from flask import Flask, Response, render_template, request, stream_with_context
 
 from .camera_service import CameraService
 from .motion_detector import MotionDetector
 
 
 def create_app():
-    app = Flask(__name__)
+    base_dir = Path(__file__).resolve().parent
+    app = Flask(
+        __name__,
+        template_folder=str(base_dir / "templates"),
+        static_folder=str(base_dir / "static"),
+    )
     camera = CameraService()
     detector = MotionDetector(frame_width=camera.width, frame_height=camera.height)
     state_condition = Condition()
     app_state = {"active": detector.current_state()}
     motion_sound_interval_ms = 1200
+
+    def build_qr_code_data_url(target_url):
+        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M)
+        qr.add_data(target_url)
+        qr.make(fit=True)
+
+        image = qr.make_image(fill_color="#111111", back_color="#ffffff")
+        buffer = BytesIO()
+        image.save(buffer, format="PNG")
+        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return f"data:image/png;base64,{encoded}"
 
     def publish_state(active):
         with state_condition:
@@ -64,11 +84,14 @@ def create_app():
 
     @app.route("/")
     def index():
+        public_url = request.url_root.rstrip("/") + "/"
         return render_template(
             "index.html",
             video_url="/video_feed",
             motion_events_url="/motion-events",
             motion_sound_interval_ms=motion_sound_interval_ms,
+            public_url=public_url,
+            qr_code_data_url=build_qr_code_data_url(public_url),
         )
 
     @app.route("/video_feed")
