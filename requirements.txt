@@ -76,7 +76,7 @@ nest-asyncio==1.6.0
 networkx==3.6.1
 notebook==7.5.2
 notebook_shim==0.2.4
-numpy==2.4.3
+numpy==2.2.6
 opencv-python-headless==4.12.0.88
 packaging==25.0
 pandocfilters==1.5.1
