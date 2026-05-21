@@ -17,7 +17,7 @@ Quando o app está em execução, a tela principal também mostra um QR Code com
 
 - Python 3.11 ou superior.
 - Acesso a uma câmera compatível com OpenCV.
-- Dependências instaladas via `requirements.txt`.
+- Dependências instaladas via `requirements.txt`, incluindo o pacote do OpenCV usado no executável.
 
 ## Instalação
 
