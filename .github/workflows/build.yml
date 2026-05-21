@@ -34,8 +34,8 @@ jobs:
 
             - name: Clean build outputs
               run: |
-                  if exist dist rmdir /s /q dist
-                  if exist build rmdir /s /q build
+                  if (Test-Path dist) { Remove-Item dist -Recurse -Force }
+                  if (Test-Path build) { Remove-Item build -Recurse -Force }
 
             - name: Build executable
               run: python build.py
@@ -67,7 +67,7 @@ jobs:
                     -v "${{ github.workspace }}:/workspace" \
                     -w /workspace \
                     archlinux:base-devel \
-                    bash -lc "pacman -Syu --noconfirm && pacman -S --noconfirm python python-pip git mesa glib2 libx11 libxext libxrender libxrandr libxcursor libxi libxtst && python -m venv .venv && . .venv/bin/activate && python -m pip install --upgrade pip && pip install -r requirements.txt && rm -rf dist build && python build.py"
+                    bash -lc "pacman -Syu --noconfirm && pacman -S --noconfirm python python-pip python-numpy python-opencv git mesa glib2 libx11 libxext libxrender libxrandr libxcursor libxi libxtst && python -m venv --system-site-packages .venv && . .venv/bin/activate && python -m pip install --upgrade pip && grep -vE '^(numpy|opencv-python-headless)==|^numpy==|^opencv-python-headless==' requirements.txt > requirements.arch.txt && pip install -r requirements.arch.txt && rm -rf dist build && python build.py"
 
             - name: Upload build artifact
               uses: actions/upload-artifact@v4
