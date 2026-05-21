@@ -49,25 +49,53 @@
         if (!soundEnabled) {
             return;
         }
-
         const context = ensureAudioContext();
         const now = context.currentTime;
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
 
-        oscillator.type = 'sawtooth';
-        oscillator.frequency.setValueAtTime(920, now);
-        oscillator.frequency.exponentialRampToValueAtTime(520, now + 0.14);
+        // Layered oscillators for a thicker, more impactful alert
+        const osc1 = context.createOscillator();
+        const osc2 = context.createOscillator();
+        const toneGain = context.createGain();
+        const masterGain = context.createGain();
+        const filter = context.createBiquadFilter();
 
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(0.2, now + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+        osc1.type = 'sawtooth';
+        osc2.type = 'square';
 
-        oscillator.connect(gain);
-        gain.connect(context.destination);
+        // start frequencies and a short sweep down for a punchy impact
+        osc1.frequency.setValueAtTime(780, now);
+        osc1.frequency.exponentialRampToValueAtTime(420, now + 0.12);
 
-        oscillator.start(now);
-        oscillator.stop(now + 0.2);
+        osc2.frequency.setValueAtTime(920, now);
+        osc2.frequency.exponentialRampToValueAtTime(520, now + 0.12);
+        osc2.detune.setValueAtTime(-8, now);
+
+        // tone envelope
+        toneGain.gain.setValueAtTime(0.0001, now);
+        toneGain.gain.exponentialRampToValueAtTime(0.65, now + 0.02);
+        toneGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
+
+        // gentle lowpass to round the edges and emphasize punch
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(3600, now);
+        filter.frequency.exponentialRampToValueAtTime(1200, now + 0.12);
+
+        // master gain to avoid clipping and allow final shaping
+        masterGain.gain.setValueAtTime(0.0001, now);
+        masterGain.gain.exponentialRampToValueAtTime(1.0, now + 0.005);
+        masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+
+        osc1.connect(toneGain);
+        osc2.connect(toneGain);
+        toneGain.connect(filter);
+        filter.connect(masterGain);
+        masterGain.connect(context.destination);
+
+        const stopTime = now + 0.38;
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(stopTime);
+        osc2.stop(stopTime);
     }
 
     function stopSoundLoop() {
