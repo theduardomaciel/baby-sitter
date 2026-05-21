@@ -1,0 +1,109 @@
+name: Build
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+
+permissions:
+    contents: write
+
+jobs:
+    build-windows:
+        name: Build on Windows
+        runs-on: windows-latest
+
+        if: github.event_name == 'push'
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+                  cache: pip
+
+            - name: Install Python dependencies
+              run: python -m pip install --upgrade pip
+
+            - name: Install project requirements
+              run: pip install -r requirements.txt
+
+            - name: Build executable
+              run: python build.py
+
+            - name: Upload build artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: baby-sitter-windows
+                  path: dist/
+                  if-no-files-found: error
+
+    build-arch:
+        name: Build in Arch container
+        runs-on: ubuntu-latest
+
+        if: github.event_name == 'push'
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Install system dependencies
+              run: |
+                  docker pull archlinux:base-devel
+
+            - name: Build executable in Arch container
+              run: |
+                  docker run --rm \
+                    -v "${{ github.workspace }}:/workspace" \
+                    -w /workspace \
+                    archlinux:base-devel \
+                    bash -lc "pacman -Syu --noconfirm && pacman -S --noconfirm python python-pip git mesa glib2 libx11 libxext libxrender libxrandr libxcursor libxi libxtst && python -m pip install --upgrade pip && pip install -r requirements.txt && python build.py"
+
+            - name: Upload build artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: baby-sitter-arch
+                  path: dist/
+                  if-no-files-found: error
+
+    release:
+        name: Create release
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push'
+        needs:
+            - build-windows
+            - build-arch
+
+        steps:
+            - name: Download Windows artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: baby-sitter-windows
+                  path: release/windows
+
+            - name: Download Arch artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: baby-sitter-arch
+                  path: release/arch
+
+            - name: Prepare release files
+              run: |
+                  mkdir -p release/files
+                  cp release/windows/* release/files/
+                  cp release/arch/* release/files/
+
+            - name: Create GitHub release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: build-${{ github.sha }}
+                  name: Build ${{ github.sha }}
+                  target_commitish: ${{ github.sha }}
+                  generate_release_notes: true
+                  files: |
+                      release/files/*
