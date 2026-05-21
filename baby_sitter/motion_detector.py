@@ -5,7 +5,7 @@ import cv2
 
 
 class MotionDetector:
-    def __init__(self, frame_width=1280, frame_height=720, pixel_threshold=5000, hold_seconds=1.2):
+    def __init__(self, frame_width=1280, frame_height=720, pixel_threshold=3500, hold_seconds=1.2):
         self._frame_width = frame_width
         self._frame_height = frame_height
         self._pixel_threshold = pixel_threshold
@@ -13,6 +13,7 @@ class MotionDetector:
         self._previous_frame = None
         self._last_motion_at = 0.0
         self._lock = Lock()
+        self._active = False
 
     def process(self, frame):
         resized = cv2.resize(frame, (self._frame_width, self._frame_height))
@@ -30,6 +31,7 @@ class MotionDetector:
                 if movement > self._pixel_threshold:
                     movement_detected = True
                     self._last_motion_at = time.monotonic()
+                    self._active = True
 
             self._previous_frame = gray
 
@@ -49,3 +51,12 @@ class MotionDetector:
     def is_active(self):
         with self._lock:
             return (time.monotonic() - self._last_motion_at) < self._hold_seconds
+
+    def refresh_active_state(self):
+        with self._lock:
+            self._active = (time.monotonic() - self._last_motion_at) < self._hold_seconds
+            return self._active
+
+    def current_state(self):
+        with self._lock:
+            return self._active or (time.monotonic() - self._last_motion_at) < self._hold_seconds
