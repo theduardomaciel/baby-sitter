@@ -67,6 +67,8 @@ Execute o build no próprio Arch Linux para gerar o binário compatível com ess
 
 O repositório possui um workflow em [`.github/workflows/build.yml`](.github/workflows/build.yml) que, a cada push em `main`, gera os binários para Windows e Arch Linux e cria automaticamente uma release no GitHub com os artefatos anexados.
 
+A release usa a versão definida no arquivo [VERSION](VERSION) e gera a tag no formato `vX.Y.Z`. Antes de publicar uma nova release, atualize esse arquivo com a próxima versão semântica.
+
 ## Estrutura principal
 
 - [main.py](main.py): ponto de entrada da aplicação.

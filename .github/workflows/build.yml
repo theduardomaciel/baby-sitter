@@ -80,6 +80,19 @@ jobs:
             - build-arch
 
         steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Read version
+              id: version
+              run: |
+                  version=$(tr -d '[:space:]' < VERSION)
+                  if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+                    echo "Invalid semantic version in VERSION: $version" >&2
+                    exit 1
+                  fi
+                  echo "value=$version" >> "$GITHUB_OUTPUT"
+
             - name: Download Windows artifact
               uses: actions/download-artifact@v4
               with:
@@ -101,9 +114,10 @@ jobs:
             - name: Create GitHub release
               uses: softprops/action-gh-release@v2
               with:
-                  tag_name: build-${{ github.sha }}
-                  name: Build ${{ github.sha }}
+                  tag_name: v${{ steps.version.outputs.value }}
+                  name: Baby Sitter v${{ steps.version.outputs.value }}
                   target_commitish: ${{ github.sha }}
                   generate_release_notes: true
+                  prerelease: false
                   files: |
                       release/files/*
