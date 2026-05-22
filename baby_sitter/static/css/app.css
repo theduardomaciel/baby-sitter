@@ -120,63 +120,6 @@ body {
     backdrop-filter: blur(10px);
 }
 
-.qr-card {
-    position: absolute;
-    left: 18px;
-    bottom: 18px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 18px;
-    max-width: min(560px, calc(100vw - 36px));
-    padding: 18px 20px;
-    border-radius: 24px;
-    background: rgba(8, 0, 0, 0.74);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(14px);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
-    z-index: 2;
-}
-
-.qr-card__eyebrow {
-    margin: 0 0 6px;
-    color: #ff8c8c;
-    font-size: 12px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-}
-
-.qr-card h1 {
-    margin: 0;
-    font-size: clamp(22px, 3vw, 30px);
-    line-height: 1.1;
-    color: var(--text);
-}
-
-.qr-card__description {
-    margin: 10px 0 12px;
-    color: rgba(255, 245, 245, 0.82);
-    line-height: 1.5;
-}
-
-.qr-card__link {
-    color: #ffd4d4;
-    text-decoration: none;
-    word-break: break-all;
-}
-
-.qr-card__link:hover {
-    text-decoration: underline;
-}
-
-.qr-card__image {
-    width: 148px;
-    height: 148px;
-    border-radius: 18px;
-    background: #fff;
-    padding: 10px;
-}
-
 .toggle.active {
     border-color: rgba(255, 90, 90, 0.5);
     box-shadow: 0 0 22px rgba(255, 35, 35, 0.22);
@@ -223,20 +166,5 @@ body {
     .toggle {
         padding: 8px 12px;
         font-size: 12px;
-    }
-
-    .qr-card {
-        left: 12px;
-        right: 12px;
-        bottom: 12px;
-        max-width: none;
-        grid-template-columns: 1fr;
-        justify-items: start;
-        gap: 14px;
-    }
-
-    .qr-card__image {
-        width: 124px;
-        height: 124px;
     }
 }

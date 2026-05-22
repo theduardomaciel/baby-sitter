@@ -1,128 +1,128 @@
 name: Build
 
 on:
-    push:
-        branches:
-            - main
-    pull_request:
+  push:
+    branches:
+      - main
+  pull_request:
 
 permissions:
-    contents: write
+  contents: write
 
 jobs:
-    build-windows:
-        name: Build on Windows
-        runs-on: windows-latest
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
 
-        if: github.event_name == 'push'
+    if: github.event_name == 'push'
 
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Set up Python
-              uses: actions/setup-python@v5
-              with:
-                  python-version: "3.11"
-                  cache: pip
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
 
-            - name: Install Python dependencies
-              run: python -m pip install --upgrade pip
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pip
 
-            - name: Install project requirements
-              run: pip install -r requirements.txt
+      - name: Install project requirements
+        run: pip install -r requirements.txt
 
-            - name: Clean build outputs
-              run: |
-                  if (Test-Path dist) { Remove-Item dist -Recurse -Force }
-                  if (Test-Path build) { Remove-Item build -Recurse -Force }
+      - name: Clean build outputs
+        run: |
+          if (Test-Path dist) { Remove-Item dist -Recurse -Force }
+          if (Test-Path build) { Remove-Item build -Recurse -Force }
 
-            - name: Build executable
-              run: python build.py
+      - name: Build executable
+        run: python build.py
 
-            - name: Upload build artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: baby-sitter-windows
-                  path: dist/
-                  if-no-files-found: error
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: baby-sitter-windows
+          path: dist/
+          if-no-files-found: error
 
-    build-arch:
-        name: Build in Arch container
-        runs-on: ubuntu-latest
+  build-arch:
+    name: Build in Arch container
+    runs-on: ubuntu-latest
 
-        if: github.event_name == 'push'
+    if: github.event_name == 'push'
 
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Install system dependencies
-              run: |
-                  docker pull archlinux:base-devel
+      - name: Install system dependencies
+        run: |
+          docker pull archlinux:base-devel
 
-            - name: Build executable in Arch container
-              run: |
-                  docker run --rm \
-                    -v "${{ github.workspace }}:/workspace" \
-                    -w /workspace \
-                    archlinux:base-devel \
-                    bash -lc "pacman -Syu --noconfirm && pacman -S --noconfirm python python-pip python-numpy python-opencv git mesa glib2 libx11 libxext libxrender libxrandr libxcursor libxi libxtst && python -m venv --system-site-packages .venv && . .venv/bin/activate && python -m pip install --upgrade pip && grep -vE '^(numpy|opencv-python-headless)==|^numpy==|^opencv-python-headless==' requirements.txt > requirements.arch.txt && pip install -r requirements.arch.txt && rm -rf dist build && python build.py"
+      - name: Build executable in Arch container
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            archlinux:base-devel \
+            bash -lc "pacman -Syu --noconfirm && pacman -S --noconfirm python python-pip python-numpy python-opencv git mesa glib2 libx11 libxext libxrender libxrandr libxcursor libxi libxtst && python -m venv --system-site-packages .venv && . .venv/bin/activate && python -m pip install --upgrade pip && grep -vE '^(numpy|opencv-python-headless|pywinpty)==|^numpy==|^opencv-python-headless==|^pywinpty==' requirements.txt > requirements.arch.txt && pip install -r requirements.arch.txt && rm -rf dist build && python build.py"
 
-            - name: Upload build artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: baby-sitter-arch
-                  path: dist/
-                  if-no-files-found: error
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: baby-sitter-arch
+          path: dist/
+          if-no-files-found: error
 
-    release:
-        name: Create release
-        runs-on: ubuntu-latest
-        if: github.event_name == 'push'
-        needs:
-            - build-windows
-            - build-arch
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs:
+      - build-windows
+      - build-arch
 
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Read version
-              id: version
-              run: |
-                  version=$(tr -d '[:space:]' < VERSION)
-                  if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-                    echo "Invalid semantic version in VERSION: $version" >&2
-                    exit 1
-                  fi
-                  echo "value=$version" >> "$GITHUB_OUTPUT"
+      - name: Read version
+        id: version
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Invalid semantic version in VERSION: $version" >&2
+            exit 1
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
 
-            - name: Download Windows artifact
-              uses: actions/download-artifact@v4
-              with:
-                  name: baby-sitter-windows
-                  path: release/windows
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: baby-sitter-windows
+          path: release/windows
 
-            - name: Download Arch artifact
-              uses: actions/download-artifact@v4
-              with:
-                  name: baby-sitter-arch
-                  path: release/arch
+      - name: Download Arch artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: baby-sitter-arch
+          path: release/arch
 
-            - name: Prepare release files
-              run: |
-                  mkdir -p release/files
-                  cp release/windows/* release/files/
-                  cp release/arch/* release/files/
+      - name: Prepare release files
+        run: |
+          mkdir -p release/files
+          cp release/windows/* release/files/
+          cp release/arch/* release/files/
 
-            - name: Create GitHub release
-              uses: softprops/action-gh-release@v2
-              with:
-                  tag_name: v${{ steps.version.outputs.value }}
-                  name: Baby Sitter v${{ steps.version.outputs.value }}
-                  target_commitish: ${{ github.sha }}
-                  generate_release_notes: true
-                  prerelease: false
-                  files: |
-                      release/files/*
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.value }}
+          name: Baby Sitter v${{ steps.version.outputs.value }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          prerelease: false
+          files: |
+            release/files/*

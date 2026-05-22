@@ -1,16 +1,69 @@
-import base64
 import json
+import os
+import socket
 import time
-from io import BytesIO
 from pathlib import Path
 from threading import Condition, Thread
 
 import cv2
 import qrcode
-from flask import Flask, Response, render_template, request, stream_with_context
+from flask import Flask, Response, render_template, stream_with_context
 
 from .camera_service import CameraService
 from .motion_detector import MotionDetector
+
+
+DEFAULT_PUBLIC_PORT = 5000
+
+
+def _detect_local_ip_address():
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connection:
+        try:
+            connection.connect(("8.8.8.8", 80))
+            return connection.getsockname()[0]
+        except OSError:
+            return "127.0.0.1"
+
+
+def resolve_public_url(port=DEFAULT_PUBLIC_PORT):
+    configured_public_url = os.environ.get("BABY_SITTER_PUBLIC_URL")
+
+    if configured_public_url:
+        return configured_public_url.rstrip("/") + "/"
+
+    return f"http://{_detect_local_ip_address()}:{port}/"
+
+
+def print_terminal_qr_code(target_url):
+    qr = qrcode.QRCode(
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        border=1,
+    )
+    qr.add_data(target_url)
+    qr.make(fit=True)
+
+    matrix = qr.get_matrix()
+    lines = ["", f"Acesse o app em: {target_url}", ""]
+
+    for row_index in range(0, len(matrix), 2):
+        top_row = matrix[row_index]
+        bottom_row = matrix[row_index + 1] if row_index + 1 < len(matrix) else [False] * len(top_row)
+        rendered_row = []
+
+        for column_index, top_cell in enumerate(top_row):
+            bottom_cell = bottom_row[column_index]
+            if top_cell and bottom_cell:
+                rendered_row.append("█")
+            elif top_cell:
+                rendered_row.append("▀")
+            elif bottom_cell:
+                rendered_row.append("▄")
+            else:
+                rendered_row.append(" ")
+
+        lines.append("".join(rendered_row))
+
+    print("\n".join(lines))
 
 
 def create_app():
@@ -25,17 +78,6 @@ def create_app():
     state_condition = Condition()
     app_state = {"active": detector.current_state()}
     motion_sound_interval_ms = 1200
-
-    def build_qr_code_data_url(target_url):
-        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M)
-        qr.add_data(target_url)
-        qr.make(fit=True)
-
-        image = qr.make_image(fill_color="#111111", back_color="#ffffff")
-        buffer = BytesIO()
-        image.save(buffer, format="PNG")
-        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
-        return f"data:image/png;base64,{encoded}"
 
     def publish_state(active):
         with state_condition:
@@ -84,14 +126,11 @@ def create_app():
 
     @app.route("/")
     def index():
-        public_url = request.url_root.rstrip("/") + "/"
         return render_template(
             "index.html",
             video_url="/video_feed",
             motion_events_url="/motion-events",
             motion_sound_interval_ms=motion_sound_interval_ms,
-            public_url=public_url,
-            qr_code_data_url=build_qr_code_data_url(public_url),
         )
 
     @app.route("/video_feed")

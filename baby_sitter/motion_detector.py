@@ -35,7 +35,7 @@ class MotionDetector:
 
             self._previous_frame = gray
 
-        if movement_detected:
+        """ if movement_detected:
             cv2.putText(
                 resized,
                 "MOVIMENTO DETECTADO",
@@ -44,7 +44,7 @@ class MotionDetector:
                 1,
                 (0, 0, 255),
                 2,
-            )
+            ) """
 
         return resized, movement_detected
 
